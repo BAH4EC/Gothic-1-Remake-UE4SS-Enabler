@@ -10,7 +10,7 @@ It automatically locates the game executable, checks compatibility, and applies 
 Steps
 1.	Download the repository and extract the archive.
 2.	Locate your game folder. The usual path is:
-S:\STEAM\steamapps\common\Gothic 1 Remake\G1R\Binaries\Win64
+C:\STEAM\steamapps\common\Gothic 1 Remake\G1R\Binaries\Win64
 3.	Copy all files from the repository into the Win64 folder, preserving the directory structure. If Windows asks to merge folders, allow it.
 After copying, dwmapi.dll should be directly inside Win64, and the ue4ss folder should be inside Win64.
 4.	Run RunPatch.cmd from the Win64 folder. Make sure the game is closed first.
