@@ -1,5 +1,5 @@
 # Gothic-1-Remake-UE4SS-Enabler
-A compatibility patcher for Gothic 1 Remake that helps restore UE4SS mods support after a game update from 10/29/2026.
+A compatibility patcher for Gothic 1 Remake that helps restore UE4SS mods support after a game update from 10/29/2026(Build102_CL175960).
 
 G1R UE4SS Patcher is a lightweight patcher for Gothic 1 Remake that adjusts executable checks preventing UE4SS mods from working after a game update.
 
