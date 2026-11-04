@@ -1,10 +1,49 @@
 ﻿$ErrorActionPreference = 'Stop'
 
 $ExpectedFileName = 'G1R-Win64-Shipping.exe'
-$ExpectedFileSize = [int64]175029760
 $ExpectedImageBase = [uint64]0x140000000
 $backupPath = $null
 $writeStarted = $false
+$versionName = $null
+
+# Verified executable builds. The patcher selects a profile by file size,
+# then validates the PE header and every original/already-patched byte sequence.
+$VersionProfiles = @{
+    '175029760' = [pscustomobject]@{
+        Name = 'Original supported build'
+        Patches = @(
+            [pscustomobject]@{
+                Name = 'Compatibility check'
+                Address = [uint64]0x14449653C
+                Expected = [byte[]](0x0F, 0x85, 0x09, 0x03, 0x00, 0x00)
+                Replacement = [byte[]](0x0F, 0x80, 0x09, 0x03, 0x00, 0x00)
+            },
+            [pscustomobject]@{
+                Name = 'Warning display'
+                Address = [uint64]0x145EB59DC
+                Expected = [byte[]](0x74, 0x45)
+                Replacement = [byte[]](0xEB, 0x45)
+            }
+        )
+    }
+    '175124992' = [pscustomobject]@{
+        Name = 'New supported build (2026-11-04)'
+        Patches = @(
+            [pscustomobject]@{
+                Name = 'Compatibility check'
+                Address = [uint64]0x1444AB83C
+                Expected = [byte[]](0x0F, 0x85, 0x09, 0x03, 0x00, 0x00)
+                Replacement = [byte[]](0x0F, 0x80, 0x09, 0x03, 0x00, 0x00)
+            },
+            [pscustomobject]@{
+                Name = 'Warning display'
+                Address = [uint64]0x145ECB1AC
+                Expected = [byte[]](0x74, 0x45)
+                Replacement = [byte[]](0xEB, 0x45)
+            }
+        )
+    }
+}
 
 function Read-PeInfo {
     param([Parameter(Mandatory)][string]$Path)
@@ -133,6 +172,7 @@ Write-Host '  Gothic 1 Remake - UE4SS Compatibility Patch' -ForegroundColor Cyan
 Write-Host '==================================================' -ForegroundColor Cyan
 Write-Host ''
 Write-Host 'Checking your game...' -ForegroundColor Gray
+Write-Host 'The patcher will automatically detect the supported game version.' -ForegroundColor Gray
 Write-Host 'Please make sure the game is closed.' -ForegroundColor Gray
 
 $exePath = Find-GameExecutable
@@ -153,25 +193,17 @@ if (-not $exePath) {
 try {
     if (-not (Test-Path -LiteralPath $exePath -PathType Leaf)) { throw 'Unsupported executable.' }
     $file = Get-Item -LiteralPath $exePath
-    if ($file.Name -ine $ExpectedFileName -or [int64]$file.Length -ne $ExpectedFileSize) { throw 'Unsupported executable.' }
+    if ($file.Name -ine $ExpectedFileName) { throw 'Unsupported executable.' }
+
+    $profileKey = [string][int64]$file.Length
+    if (-not $VersionProfiles.ContainsKey($profileKey)) { throw 'Unsupported executable.' }
 
     $peInfo = Read-PeInfo -Path $exePath
     if ([uint64]$peInfo.ImageBase -ne $ExpectedImageBase) { throw 'Unsupported executable.' }
 
-    $patches = @(
-        [pscustomobject]@{
-            Name = 'Compatibility check'
-            Address = [uint64]0x14449653C
-            Expected = [byte[]](0x0F, 0x85, 0x09, 0x03, 0x00, 0x00)
-            Replacement = [byte[]](0x0F, 0x80, 0x09, 0x03, 0x00, 0x00)
-        },
-        [pscustomobject]@{
-            Name = 'Warning display'
-            Address = [uint64]0x145EB59DC
-            Expected = [byte[]](0x74, 0x45)
-            Replacement = [byte[]](0xEB, 0x45)
-        }
-    )
+    $profile = $VersionProfiles[$profileKey]
+    $versionName = $profile.Name
+    $patches = @($profile.Patches)
 
     $stream = [System.IO.File]::Open($exePath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
     $reader = [System.IO.BinaryReader]::new($stream)
@@ -197,6 +229,9 @@ try {
         $reader.Dispose()
         $stream.Dispose()
     }
+
+    Write-Host ''
+    Write-Host ('Detected game version: {0}' -f $versionName) -ForegroundColor Cyan
 
     $toApply = @($patches | Where-Object { $_.State -eq 'Original' })
     if ($toApply.Count -eq 0) {
