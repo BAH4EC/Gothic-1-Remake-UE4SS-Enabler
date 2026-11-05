@@ -5,6 +5,7 @@ G1R UE4SS Patcher is a lightweight patcher for Gothic 1 Remake that adjusts exec
 
 It automatically locates the game executable, checks compatibility, and applies the patch when needed. A backup of the original executable is created before any changes are made.
 
+Note: After the game updates are released, a new version of the fix is required.
 
 ## Installation
 Steps
